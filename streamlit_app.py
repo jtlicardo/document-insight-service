@@ -49,16 +49,17 @@ if st.button("Ask"):
     elif not question.strip():
         st.warning("Please enter a question.")
     else:
-        try:
-            response = requests.post(
-                f"{API_URL}/ask",
-                json={"question": question},
-                timeout=30,
-            )
-            response.raise_for_status()
-            result = response.json()
+        with st.spinner("Processing your question...", show_time=True):
+            try:
+                response = requests.post(
+                    f"{API_URL}/ask",
+                    json={"question": question},
+                    timeout=30,
+                )
+                response.raise_for_status()
+                result = response.json()
 
-            st.subheader("Answer")
-            st.write(result["answer"])
-        except requests.RequestException as exc:
-            st.error(f"Could not get an answer: {exc}")
+                st.subheader("Answer")
+                st.write(result["answer"])
+            except requests.RequestException as exc:
+                st.error(f"Could not get an answer: {exc}")
