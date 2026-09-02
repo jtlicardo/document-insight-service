@@ -1,10 +1,16 @@
+import os
 from pathlib import Path
 from typing import Annotated
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from openai import OpenAIError
 from pydantic import BaseModel
 
 from document_processing import create_ocr_engine, extract_text
+from question_answering import answer_question
+
+load_dotenv()
 
 app = FastAPI(title="Document Insight Service")
 app.state.uploaded_documents = []
@@ -70,9 +76,26 @@ def ask_question(question_request: QuestionRequest, request: Request):
     if not request.app.state.uploaded_documents:
         raise HTTPException(status_code=400, detail="Upload a document first.")
 
+    if not os.getenv("OPENAI_API_KEY"):
+        raise HTTPException(
+            status_code=500,
+            detail="OPENAI_API_KEY is not configured.",
+        )
+
+    try:
+        answer = answer_question(
+            question_request.question,
+            request.app.state.uploaded_documents,
+        )
+    except OpenAIError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="OpenAI could not answer the question.",
+        ) from exc
+
     return {
         "question": question_request.question,
-        "answer": "Question answering is not implemented yet.",
+        "answer": answer,
     }
 
 
