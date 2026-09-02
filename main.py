@@ -9,11 +9,13 @@ from pydantic import BaseModel
 
 from document_processing import create_ocr_engine, extract_text
 from question_answering import answer_question
+from retrieval import create_document_chunks, retrieve_relevant_chunks
 
 load_dotenv()
 
 app = FastAPI(title="Document Insight Service")
 app.state.uploaded_documents = []
+app.state.document_chunks = []
 app.state.ocr_engine = None
 
 ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff"}
@@ -29,6 +31,12 @@ async def upload_documents(
     files: Annotated[list[UploadFile], File()],
 ):
     """Extract and temporarily store text from uploaded PDF or image documents."""
+    if not os.getenv("OPENAI_API_KEY"):
+        raise HTTPException(
+            status_code=500,
+            detail="OPENAI_API_KEY is not configured.",
+        )
+
     documents = []
     for file in files:
         extension = Path(file.filename or "").suffix.lower()
@@ -59,7 +67,18 @@ async def upload_documents(
             }
         )
 
+    try:
+        document_chunks = create_document_chunks(documents)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except OpenAIError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="OpenAI could not create document embeddings.",
+        ) from exc
+
     request.app.state.uploaded_documents = documents
+    request.app.state.document_chunks = document_chunks
 
     return {
         "documents": [
@@ -83,9 +102,13 @@ def ask_question(question_request: QuestionRequest, request: Request):
         )
 
     try:
+        relevant_chunks = retrieve_relevant_chunks(
+            question_request.question,
+            request.app.state.document_chunks,
+        )
         answer = answer_question(
             question_request.question,
-            request.app.state.uploaded_documents,
+            relevant_chunks,
         )
     except OpenAIError as exc:
         raise HTTPException(

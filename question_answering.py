@@ -3,11 +3,10 @@ import os
 from openai import OpenAI
 
 
-def answer_question(question: str, documents: list[dict]) -> str:
-    """Answer a question using text extracted from the uploaded documents."""
+def answer_question(question: str, chunks: list[dict]) -> str:
+    """Answer a question using the most relevant document chunks."""
     document_text = "\n\n".join(
-        f"Document: {document['filename']}\n{document['text']}"
-        for document in documents
+        f"Document: {chunk['filename']}\n{chunk['text']}" for chunk in chunks
     )
 
     client = OpenAI()
