@@ -6,10 +6,11 @@ import streamlit as st
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 st.title("Document Insight Service")
+st.session_state.setdefault("extracted_documents", [])
 
 uploaded_files = st.file_uploader(
     "Upload PDF or image documents",
-    type=["pdf", "png", "jpg", "jpeg"],
+    type=["pdf", "png", "jpg", "jpeg", "tif", "tiff"],
     accept_multiple_files=True,
 )
 
@@ -22,16 +23,23 @@ if st.button("Upload documents"):
             for file in uploaded_files
         ]
 
-        try:
-            response = requests.post(f"{API_URL}/upload", files=files, timeout=30)
-            response.raise_for_status()
-            result = response.json()
+        with st.spinner("Extracting text..."):
+            try:
+                response = requests.post(f"{API_URL}/upload", files=files, timeout=300)
+                response.raise_for_status()
+                result = response.json()
 
-            st.session_state["documents_uploaded"] = True
-            st.success(result["message"])
-            st.write("Uploaded files:", result["uploaded_files"])
-        except requests.RequestException as exc:
-            st.error(f"Could not upload documents: {exc}")
+                st.session_state["documents_uploaded"] = True
+                st.session_state["extracted_documents"] = result["documents"]
+                st.success(result["message"])
+            except requests.RequestException as exc:
+                st.error(f"Could not upload documents: {exc}")
+
+if st.session_state["extracted_documents"]:
+    st.subheader("Extracted text")
+    for document in st.session_state["extracted_documents"]:
+        with st.expander(document["filename"]):
+            st.text(document["text"])
 
 question = st.text_input("Ask a question about the documents")
 
