@@ -12,6 +12,10 @@ SAMPLE_DOCUMENTS = {
         "label": ":material/picture_as_pdf: Sample contract",
         "content_type": "application/pdf",
     },
+    "greenline_modernization_report.pdf": {
+        "label": ":material/analytics: Modernization report",
+        "content_type": "application/pdf",
+    },
     "event_invitation.png": {
         "label": ":material/event: Event invitation",
         "content_type": "image/png",
