@@ -12,8 +12,8 @@ SAMPLE_DOCUMENTS = {
         "label": ":material/picture_as_pdf: Sample contract",
         "content_type": "application/pdf",
     },
-    "scanned_invoice.png": {
-        "label": ":material/image: Scanned invoice",
+    "event_invitation.png": {
+        "label": ":material/event: Event invitation",
         "content_type": "image/png",
     },
 }
@@ -46,6 +46,11 @@ def escape_markdown(text: str) -> str:
     return text.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
 
 
+def normalize_display_text(text: str) -> str:
+    """Collapse extraction line breaks when rendering an entity chip."""
+    return " ".join(text.split())
+
+
 def display_entity_summary(entities: list[dict]) -> None:
     """Display useful document entities as grouped, color-coded chips."""
     grouped_entities = {}
@@ -53,8 +58,9 @@ def display_entity_summary(entities: list[dict]) -> None:
         if entity["label"] not in ENTITY_LABELS:
             continue
         grouped_entities.setdefault(entity["label"], [])
-        if entity["text"] not in grouped_entities[entity["label"]]:
-            grouped_entities[entity["label"]].append(entity["text"])
+        display_text = normalize_display_text(entity["text"])
+        if display_text not in grouped_entities[entity["label"]]:
+            grouped_entities[entity["label"]].append(display_text)
 
     for label, values in grouped_entities.items():
         display_label = ENTITY_LABELS[label]
@@ -78,9 +84,7 @@ def display_sources(sources: list[dict]) -> None:
         type="compact",
     ):
         for source in sources:
-            st.markdown(
-                f":gray-badge[{escape_markdown(source['filename'])}]"
-            )
+            st.markdown(f":gray-badge[{escape_markdown(source['filename'])}]")
             st.caption(source["excerpt"])
 
 
@@ -93,7 +97,7 @@ st.title("Document insight service")
 st.markdown("Turn PDFs and images into answers you can trust.")
 st.caption(
     ":material/model_training: **Model stack:** GPT-5.6 Terra · "
-    "text-embedding-3-small · spaCy en_core_web_md"
+    "text-embedding-3-small · fastino/gliner2.5-base-v1"
 )
 st.caption(
     ":material/language: Works best with English-language documents. Results may "
@@ -137,10 +141,7 @@ if upload_clicked:
         if filename in SAMPLE_DOCUMENTS
     }
     files_by_name.update(
-        {
-            file.name: (file.name, file.getvalue(), file.type)
-            for file in uploaded_files
-        }
+        {file.name: (file.name, file.getvalue(), file.type) for file in uploaded_files}
     )
 
     if not files_by_name:
@@ -193,7 +194,9 @@ if st.session_state["extracted_documents"]:
                 for entity in document["entities"]
                 if entity["label"] in ENTITY_LABELS
             ]
-            entity_count = len({entity["text"] for entity in visible_entities})
+            entity_count = len(
+                {normalize_display_text(entity["text"]) for entity in visible_entities}
+            )
             st.markdown(
                 f"### :material/description: {escape_markdown(document['filename'])} "
                 f":gray-badge[{entity_count} entities]"

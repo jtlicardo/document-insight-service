@@ -6,7 +6,8 @@
 | `sample_contract.pdf` | What is the monthly fee? | EUR 2,400.00 |
 | `sample_contract.pdf` | How much termination notice is required? | 30 days |
 | `sample_contract.pdf` | Which country's laws govern the agreement? | Croatia |
-| `scanned_invoice.png` | What is the invoice number? | INV-2026-1042 |
-| `scanned_invoice.png` | When is payment due? | 19 September 2026 |
-| `scanned_invoice.png` | What is the invoice total? | EUR 1,275.50 |
+| `event_invitation.png` | Who is the keynote speaker? | Amelia Hart |
+| `event_invitation.png` | Who is hosting the event? | Horizon Research Institute |
+| `event_invitation.png` | When is the event? | 18 October 2026 |
+| `event_invitation.png` | Where is the event? | Aurora Conference Center in Dublin, Ireland |
 | Both documents | How many employees does Northwind Labs have? | Not found in the documents |

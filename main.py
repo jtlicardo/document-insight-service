@@ -40,6 +40,7 @@ async def upload_documents(
     files: Annotated[list[UploadFile], File()],
 ):
     """Extract and temporarily store text from uploaded PDF or image documents."""
+
     def get_ocr_engine():
         """Create the OCR engine only when a document actually needs it."""
         if request.app.state.ocr_engine is None:
@@ -149,9 +150,7 @@ def ask_question(question_request: QuestionRequest, request: Request):
             detail="OpenAI could not answer the question.",
         ) from exc
 
-    chunks_by_source_id = {
-        chunk["source_id"]: chunk for chunk in relevant_chunks
-    }
+    chunks_by_source_id = {chunk["source_id"]: chunk for chunk in relevant_chunks}
     source_ids = list(dict.fromkeys(answer_result.source_ids))
     sources = [
         {

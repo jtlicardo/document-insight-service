@@ -80,8 +80,6 @@ def run_ocr(image: np.ndarray, ocr_engine: PaddleOCR) -> str:
         data = result.json
         ocr_data = data.get("res", data)
         lines.extend(
-            text.strip()
-            for text in ocr_data.get("rec_texts", [])
-            if text.strip()
+            text.strip() for text in ocr_data.get("rec_texts", []) if text.strip()
         )
     return "\n".join(lines)
