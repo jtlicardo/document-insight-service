@@ -80,6 +80,10 @@ st.set_page_config(
 st.title("Document insight service")
 st.markdown("Turn PDFs and images into answers you can trust.")
 st.caption(
+    ":material/model_training: **Model stack:** GPT-5.6 Luna · "
+    "text-embedding-3-small · spaCy en_core_web_sm"
+)
+st.caption(
     ":material/language: Works best with English-language documents. Results may "
     "be less accurate in other languages."
 )
@@ -148,10 +152,6 @@ if upload_clicked:
 
 if st.session_state["extracted_documents"]:
     st.subheader("Document insights", anchor=False)
-    st.caption(
-        ":material/model_training: Entity extraction powered by spaCy "
-        "(`en_core_web_sm`)."
-    )
     for index, document in enumerate(st.session_state["extracted_documents"]):
         with st.container(border=True, key=f"document_{index}", gap="small"):
             visible_entities = [
