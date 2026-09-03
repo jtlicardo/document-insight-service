@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from io import BytesIO
 
 import numpy as np
@@ -16,14 +17,21 @@ def create_ocr_engine() -> PaddleOCR:
     )
 
 
-def extract_text(content: bytes, extension: str, ocr_engine: PaddleOCR) -> str:
+def extract_text(
+    content: bytes,
+    extension: str,
+    get_ocr_engine: Callable[[], PaddleOCR],
+) -> str:
     """Route document content to the appropriate PDF or image extractor."""
     if extension == ".pdf":
-        return extract_pdf_text(content, ocr_engine)
-    return extract_image_text(content, ocr_engine)
+        return extract_pdf_text(content, get_ocr_engine)
+    return extract_image_text(content, get_ocr_engine())
 
 
-def extract_pdf_text(content: bytes, ocr_engine: PaddleOCR) -> str:
+def extract_pdf_text(
+    content: bytes,
+    get_ocr_engine: Callable[[], PaddleOCR],
+) -> str:
     """Extract embedded text from a PDF, using OCR for scanned pages."""
     try:
         document = pymupdf.open(stream=content, filetype="pdf")
@@ -42,7 +50,7 @@ def extract_pdf_text(content: bytes, ocr_engine: PaddleOCR) -> str:
                     pixmap.width,
                     pixmap.n,
                 )
-                text = run_ocr(image[:, :, ::-1], ocr_engine)
+                text = run_ocr(image[:, :, ::-1], get_ocr_engine())
 
             if text:
                 pages.append(f"Page {page_number}\n{text}")

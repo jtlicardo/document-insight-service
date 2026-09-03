@@ -13,7 +13,7 @@ from retrieval import create_document_chunks, retrieve_relevant_chunks
 
 load_dotenv()
 
-app = FastAPI(title="Document Insight Service")
+app = FastAPI(title="Document insight service")
 app.state.uploaded_documents = []
 app.state.document_chunks = []
 app.state.ocr_engine = None
@@ -31,11 +31,11 @@ async def upload_documents(
     files: Annotated[list[UploadFile], File()],
 ):
     """Extract and temporarily store text from uploaded PDF or image documents."""
-    if not os.getenv("OPENAI_API_KEY"):
-        raise HTTPException(
-            status_code=500,
-            detail="OPENAI_API_KEY is not configured.",
-        )
+    def get_ocr_engine():
+        """Create the OCR engine only when a document actually needs it."""
+        if request.app.state.ocr_engine is None:
+            request.app.state.ocr_engine = create_ocr_engine()
+        return request.app.state.ocr_engine
 
     documents = []
     for file in files:
@@ -50,11 +50,8 @@ async def upload_documents(
         if not content:
             raise HTTPException(status_code=400, detail=f"{file.filename} is empty.")
 
-        if request.app.state.ocr_engine is None:
-            request.app.state.ocr_engine = create_ocr_engine()
-
         try:
-            text = extract_text(content, extension, request.app.state.ocr_engine)
+            text = extract_text(content, extension, get_ocr_engine)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -67,18 +64,8 @@ async def upload_documents(
             }
         )
 
-    try:
-        document_chunks = create_document_chunks(documents)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except OpenAIError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail="OpenAI could not create document embeddings.",
-        ) from exc
-
     request.app.state.uploaded_documents = documents
-    request.app.state.document_chunks = document_chunks
+    request.app.state.document_chunks = []
 
     return {
         "documents": [
@@ -87,6 +74,33 @@ async def upload_documents(
         ],
         "message": "Files uploaded successfully.",
     }
+
+
+@app.post("/index")
+def index_documents(request: Request):
+    """Create and temporarily store embeddings for the uploaded documents."""
+    if not request.app.state.uploaded_documents:
+        raise HTTPException(status_code=400, detail="Upload a document first.")
+
+    if not os.getenv("OPENAI_API_KEY"):
+        raise HTTPException(
+            status_code=500,
+            detail="OPENAI_API_KEY is not configured.",
+        )
+
+    try:
+        request.app.state.document_chunks = create_document_chunks(
+            request.app.state.uploaded_documents
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except OpenAIError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="OpenAI could not create document embeddings.",
+        ) from exc
+
+    return {"message": "Document embeddings created successfully."}
 
 
 @app.post("/ask")
@@ -102,6 +116,11 @@ def ask_question(question_request: QuestionRequest, request: Request):
         )
 
     try:
+        if not request.app.state.document_chunks:
+            request.app.state.document_chunks = create_document_chunks(
+                request.app.state.uploaded_documents
+            )
+
         relevant_chunks = retrieve_relevant_chunks(
             question_request.question,
             request.app.state.document_chunks,
