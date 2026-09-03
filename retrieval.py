@@ -62,4 +62,11 @@ def retrieve_relevant_chunks(
     )[0]
     top_indices = similarities.argsort()[::-1][:TOP_CHUNKS]
 
-    return [chunks[index] for index in top_indices]
+    return [
+        {
+            **chunks[index],
+            "source_id": f"S{source_number}",
+            "similarity": float(similarities[index]),
+        }
+        for source_number, index in enumerate(top_indices, start=1)
+    ]

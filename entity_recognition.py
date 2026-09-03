@@ -1,10 +1,10 @@
-import en_core_web_sm
+import en_core_web_md
 from spacy.language import Language
 
 
 def create_ner_model() -> Language:
     """Load spaCy's small English pipeline with only NER-related components."""
-    return en_core_web_sm.load(
+    return en_core_web_md.load(
         disable=["tagger", "parser", "attribute_ruler", "lemmatizer"]
     )
 

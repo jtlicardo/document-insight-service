@@ -139,21 +139,35 @@ def ask_question(question_request: QuestionRequest, request: Request):
             question_request.question,
             request.app.state.document_chunks,
         )
-        answer = answer_question(
+        answer_result = answer_question(
             question_request.question,
             relevant_chunks,
         )
-        entities = extract_entities(answer, get_ner_model(request))
-    except OpenAIError as exc:
+        entities = extract_entities(answer_result.answer, get_ner_model(request))
+    except (OpenAIError, ValueError) as exc:
         raise HTTPException(
             status_code=502,
             detail="OpenAI could not answer the question.",
         ) from exc
 
+    chunks_by_source_id = {
+        chunk["source_id"]: chunk for chunk in relevant_chunks
+    }
+    source_ids = list(dict.fromkeys(answer_result.source_ids))
+    sources = [
+        {
+            "filename": chunks_by_source_id[source_id]["filename"],
+            "excerpt": chunks_by_source_id[source_id]["text"],
+        }
+        for source_id in source_ids
+        if source_id in chunks_by_source_id
+    ]
+
     return {
         "question": question_request.question,
-        "answer": answer,
+        "answer": answer_result.answer,
         "entities": entities,
+        "sources": sources,
     }
 
 

@@ -72,6 +72,24 @@ def display_entity_summary(entities: list[dict]) -> None:
         st.markdown(entity_chips)
 
 
+def display_sources(sources: list[dict]) -> None:
+    """Display supporting document excerpts in a compact source expander."""
+    if not sources:
+        return
+
+    source_label = "source" if len(sources) == 1 else "sources"
+    with st.expander(
+        f"{len(sources)} {source_label}",
+        icon=":material/source:",
+        type="compact",
+    ):
+        for source in sources:
+            st.markdown(
+                f":gray-badge[{escape_markdown(source['filename'])}]"
+            )
+            st.caption(source["excerpt"])
+
+
 st.set_page_config(
     page_title="Document insight service",
     page_icon=":material/document_search:",
@@ -81,7 +99,7 @@ st.title("Document insight service")
 st.markdown("Turn PDFs and images into answers you can trust.")
 st.caption(
     ":material/model_training: **Model stack:** GPT-5.6 Luna · "
-    "text-embedding-3-small · spaCy en_core_web_sm"
+    "text-embedding-3-small · spaCy en_core_web_md"
 )
 st.caption(
     ":material/language: Works best with English-language documents. Results may "
@@ -179,6 +197,7 @@ for message in st.session_state["messages"]:
             st.markdown(highlight_entities(message["content"], message["entities"]))
         else:
             st.write(message["content"])
+        display_sources(message.get("sources", []))
 
 question = st.chat_input(
     "Ask a question about your documents",
@@ -208,6 +227,7 @@ if question:
                     "role": "assistant",
                     "content": result["answer"],
                     "entities": result["entities"],
+                    "sources": result.get("sources", []),
                 }
             )
             if result["entities"]:
@@ -216,5 +236,6 @@ if question:
                 )
             else:
                 st.write(result["answer"])
+            display_sources(result.get("sources", []))
         except requests.RequestException as exc:
             st.error(f"Could not get an answer: {exc}")
