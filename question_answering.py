@@ -26,6 +26,7 @@ def answer_question(question: str, chunks: list[dict]) -> QuestionAnswer:
     document_text = "\n\n".join(
         f"Source ID: {chunk['source_id']}\n"
         f"Document: {chunk['filename']}\n"
+        f"Page: {chunk['page_number'] or 'Not applicable'}\n"
         f"Excerpt:\n{chunk['text']}"
         for chunk in chunks
     )

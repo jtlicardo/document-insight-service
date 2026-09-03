@@ -5,7 +5,7 @@ from typing import Annotated
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from openai import OpenAIError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 from document_processing import create_ocr_engine, extract_text
 from entity_recognition import create_ner_model, extract_entities
@@ -21,10 +21,20 @@ app.state.ocr_engine = None
 app.state.ner_model = None
 
 ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff"}
+MAX_FILE_COUNT = 10
+MAX_FILE_SIZE_MIB = 10
+MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MIB * 1024 * 1024
+MAX_QUESTION_LENGTH = 2_000
 
 
 class QuestionRequest(BaseModel):
-    question: str
+    question: str = Field(min_length=1, max_length=MAX_QUESTION_LENGTH)
+
+    @field_validator("question", mode="before")
+    @classmethod
+    def strip_question(cls, value):
+        """Strip surrounding whitespace before validating question length."""
+        return value.strip() if isinstance(value, str) else value
 
 
 def get_ner_model(request: Request):
@@ -40,6 +50,11 @@ async def upload_documents(
     files: Annotated[list[UploadFile], File()],
 ):
     """Extract and temporarily store text from uploaded PDF or image documents."""
+    if len(files) > MAX_FILE_COUNT:
+        raise HTTPException(
+            status_code=400,
+            detail=f"A maximum of {MAX_FILE_COUNT} documents can be uploaded at once.",
+        )
 
     def get_ocr_engine():
         """Create the OCR engine only when a document actually needs it."""
@@ -56,12 +71,20 @@ async def upload_documents(
                 detail=f"Unsupported file type: {extension or 'unknown'}",
             )
 
-        content = await file.read()
+        content = await file.read(MAX_FILE_SIZE_BYTES + 1)
         if not content:
             raise HTTPException(status_code=400, detail=f"{file.filename} is empty.")
+        if len(content) > MAX_FILE_SIZE_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=(
+                    f"{file.filename} exceeds the {MAX_FILE_SIZE_MIB} MiB "
+                    "per-document limit."
+                ),
+            )
 
         try:
-            text = extract_text(content, extension, get_ocr_engine)
+            extracted_document = extract_text(content, extension, get_ocr_engine)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -70,8 +93,12 @@ async def upload_documents(
                 "filename": file.filename,
                 "content_type": file.content_type,
                 "content": content,
-                "text": text,
-                "entities": extract_entities(text, get_ner_model(request)),
+                "text": extracted_document["text"],
+                "pages": extracted_document["pages"],
+                "entities": extract_entities(
+                    extracted_document["text"],
+                    get_ner_model(request),
+                ),
             }
         )
 
@@ -155,6 +182,7 @@ def ask_question(question_request: QuestionRequest, request: Request):
     sources = [
         {
             "filename": chunks_by_source_id[source_id]["filename"],
+            "page_number": chunks_by_source_id[source_id]["page_number"],
             "excerpt": chunks_by_source_id[source_id]["text"],
         }
         for source_id in source_ids

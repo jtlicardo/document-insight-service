@@ -24,9 +24,14 @@ def chunk_text(text: str) -> list[str]:
 def create_document_chunks(documents: list[dict]) -> list[dict]:
     """Chunk document text and create an embedding for every chunk."""
     chunks = [
-        {"filename": document["filename"], "text": chunk}
+        {
+            "filename": document["filename"],
+            "page_number": page["page_number"],
+            "text": chunk,
+        }
         for document in documents
-        for chunk in chunk_text(document["text"])
+        for page in document["pages"]
+        for chunk in chunk_text(page["text"])
     ]
 
     if not chunks:

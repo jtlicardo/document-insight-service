@@ -6,6 +6,9 @@ import streamlit as st
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 TEXT_PREVIEW_LENGTH = 1_000
+MAX_FILE_COUNT = 10
+MAX_FILE_SIZE_MIB = 10
+MAX_QUESTION_LENGTH = 2_000
 SAMPLE_DIRECTORY = Path(__file__).resolve().parent / "sample_documents"
 SAMPLE_DOCUMENTS = {
     "sample_contract.pdf": {
@@ -88,7 +91,10 @@ def display_sources(sources: list[dict]) -> None:
         type="compact",
     ):
         for source in sources:
-            st.markdown(f":gray-badge[{escape_markdown(source['filename'])}]")
+            citation = source["filename"]
+            if source.get("page_number") is not None:
+                citation = f"{citation} · Page {source['page_number']}"
+            st.markdown(f":gray-badge[{escape_markdown(citation)}]")
             st.caption(source["excerpt"])
 
 
@@ -112,7 +118,10 @@ st.session_state.setdefault("messages", [])
 
 with st.container(border=True, gap="small"):
     st.markdown("### Add documents")
-    st.caption("PDF, PNG, JPG or TIFF · multiple files supported")
+    st.caption(
+        f"PDF, PNG, JPG or TIFF · Up to {MAX_FILE_COUNT} files · "
+        f"{MAX_FILE_SIZE_MIB} MiB per file"
+    )
     selected_samples = st.pills(
         "Try the included samples",
         options=list(SAMPLE_DOCUMENTS),
@@ -234,6 +243,7 @@ for message in st.session_state["messages"]:
 
 question = st.chat_input(
     "Ask a question about your documents",
+    max_chars=MAX_QUESTION_LENGTH,
     disabled=not st.session_state.get("documents_uploaded", False),
     submit_mode="disable",
 )

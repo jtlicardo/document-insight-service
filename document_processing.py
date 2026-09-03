@@ -1,10 +1,21 @@
 from collections.abc import Callable
 from io import BytesIO
+from typing import TypedDict
 
 import numpy as np
 import pymupdf
 from paddleocr import PaddleOCR
 from PIL import Image, UnidentifiedImageError
+
+
+class ExtractedPage(TypedDict):
+    page_number: int | None
+    text: str
+
+
+class ExtractedDocument(TypedDict):
+    text: str
+    pages: list[ExtractedPage]
 
 
 def create_ocr_engine() -> PaddleOCR:
@@ -21,8 +32,8 @@ def extract_text(
     content: bytes,
     extension: str,
     get_ocr_engine: Callable[[], PaddleOCR],
-) -> str:
-    """Route document content to the appropriate PDF or image extractor."""
+) -> ExtractedDocument:
+    """Extract document text while preserving available page metadata."""
     if extension == ".pdf":
         return extract_pdf_text(content, get_ocr_engine)
     return extract_image_text(content, get_ocr_engine())
@@ -31,14 +42,14 @@ def extract_text(
 def extract_pdf_text(
     content: bytes,
     get_ocr_engine: Callable[[], PaddleOCR],
-) -> str:
-    """Extract embedded text from a PDF, using OCR for scanned pages."""
+) -> ExtractedDocument:
+    """Extract PDF text by page, using OCR when embedded text is unavailable."""
     try:
         document = pymupdf.open(stream=content, filetype="pdf")
     except pymupdf.FileDataError as exc:
         raise ValueError("The PDF is invalid or unreadable.") from exc
 
-    pages = []
+    pages: list[ExtractedPage] = []
     with document:
         for page_number, page in enumerate(document, start=1):
             text = page.get_text("text").strip()
@@ -53,15 +64,20 @@ def extract_pdf_text(
                 text = run_ocr(image[:, :, ::-1], get_ocr_engine())
 
             if text:
-                pages.append(f"Page {page_number}\n{text}")
+                pages.append({"page_number": page_number, "text": text})
 
     if not pages:
         raise ValueError("No text could be extracted from the PDF.")
-    return "\n\n".join(pages)
+    return {
+        "text": "\n\n".join(
+            f"Page {page['page_number']}\n{page['text']}" for page in pages
+        ),
+        "pages": pages,
+    }
 
 
-def extract_image_text(content: bytes, ocr_engine: PaddleOCR) -> str:
-    """Extract text from an image using PaddleOCR."""
+def extract_image_text(content: bytes, ocr_engine: PaddleOCR) -> ExtractedDocument:
+    """Extract image text with no PDF page number using PaddleOCR."""
     try:
         image = Image.open(BytesIO(content)).convert("RGB")
     except (UnidentifiedImageError, OSError) as exc:
@@ -70,7 +86,10 @@ def extract_image_text(content: bytes, ocr_engine: PaddleOCR) -> str:
     text = run_ocr(np.asarray(image)[:, :, ::-1], ocr_engine)
     if not text:
         raise ValueError("No text could be extracted from the image.")
-    return text
+    return {
+        "text": text,
+        "pages": [{"page_number": None, "text": text}],
+    }
 
 
 def run_ocr(image: np.ndarray, ocr_engine: PaddleOCR) -> str:
