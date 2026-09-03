@@ -22,8 +22,8 @@ app.state.ner_model = None
 
 ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff"}
 MAX_FILE_COUNT = 10
-MAX_FILE_SIZE_MIB = 10
-MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MIB * 1024 * 1024
+MAX_FILE_SIZE_MB = 10
+MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 MAX_QUESTION_LENGTH = 2_000
 
 
@@ -78,7 +78,7 @@ async def upload_documents(
             raise HTTPException(
                 status_code=413,
                 detail=(
-                    f"{file.filename} exceeds the {MAX_FILE_SIZE_MIB} MiB "
+                    f"{file.filename} exceeds the {MAX_FILE_SIZE_MB} MB "
                     "per-document limit."
                 ),
             )

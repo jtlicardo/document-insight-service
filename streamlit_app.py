@@ -7,7 +7,7 @@ import streamlit as st
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 TEXT_PREVIEW_LENGTH = 1_000
 MAX_FILE_COUNT = 10
-MAX_FILE_SIZE_MIB = 10
+MAX_FILE_SIZE_MB = 10
 MAX_QUESTION_LENGTH = 2_000
 SAMPLE_DIRECTORY = Path(__file__).resolve().parent / "sample_documents"
 SAMPLE_DOCUMENTS = {
@@ -118,10 +118,7 @@ st.session_state.setdefault("messages", [])
 
 with st.container(border=True, gap="small"):
     st.markdown("### Add documents")
-    st.caption(
-        f"PDF, PNG, JPG or TIFF · Up to {MAX_FILE_COUNT} files · "
-        f"{MAX_FILE_SIZE_MIB} MiB per file"
-    )
+    st.caption(f"Up to {MAX_FILE_COUNT} documents at a time")
     selected_samples = st.pills(
         "Try the included samples",
         options=list(SAMPLE_DOCUMENTS),
@@ -134,6 +131,7 @@ with st.container(border=True, gap="small"):
     uploaded_files = st.file_uploader(
         "Choose documents",
         type=["pdf", "png", "jpg", "jpeg", "tif", "tiff"],
+        max_upload_size=MAX_FILE_SIZE_MB,
         accept_multiple_files=True,
         label_visibility="collapsed",
     )
