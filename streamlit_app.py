@@ -5,6 +5,7 @@ import requests
 import streamlit as st
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
+TEXT_PREVIEW_LENGTH = 1_000
 SAMPLE_DIRECTORY = Path(__file__).resolve().parent / "sample_documents"
 SAMPLE_DOCUMENTS = {
     "sample_contract.pdf": {
@@ -221,8 +222,21 @@ if st.session_state["extracted_documents"]:
             else:
                 st.caption("No useful named entities detected.")
 
-            with st.expander(":material/article: View extracted text"):
-                st.text(document["text"])
+            with st.expander(":material/article: Extracted text preview"):
+                text = document["text"]
+                preview = text[:TEXT_PREVIEW_LENGTH]
+                if len(text) > TEXT_PREVIEW_LENGTH:
+                    preview = f"{preview.rstrip()}…"
+                st.caption(
+                    f"Preview only · Up to the first {TEXT_PREVIEW_LENGTH:,} "
+                    "extracted characters"
+                )
+                st.text(preview)
+                if len(text) > TEXT_PREVIEW_LENGTH:
+                    st.caption(
+                        f"{len(text) - TEXT_PREVIEW_LENGTH:,} additional "
+                        "characters not shown."
+                    )
 
 st.subheader("Ask your documents", anchor=False)
 for message in st.session_state["messages"]:
