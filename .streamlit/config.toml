@@ -1,0 +1,38 @@
+[theme]
+font = "sans-serif"
+baseFontSize = 15
+baseFontWeight = 400
+headingFontSizes = ["38px", "26px", "21px", "17px", "15px", "13px"]
+headingFontWeights = [650, 600, 600, 600, 600, 600]
+baseRadius = "large"
+buttonRadius = "full"
+showWidgetBorder = true
+linkUnderline = false
+
+[theme.light]
+primaryColor = "#007AFF"
+backgroundColor = "#F5F5F7"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#1D1D1F"
+borderColor = "#D2D2D7"
+grayColor = "#86868B"
+blueColor = "#007AFF"
+greenColor = "#34C759"
+orangeColor = "#FF9500"
+redColor = "#FF3B30"
+violetColor = "#AF52DE"
+yellowColor = "#A05A00"
+
+[theme.dark]
+primaryColor = "#0A84FF"
+backgroundColor = "#000000"
+secondaryBackgroundColor = "#1C1C1E"
+textColor = "#F5F5F7"
+borderColor = "#38383A"
+grayColor = "#98989D"
+blueColor = "#0A84FF"
+greenColor = "#30D158"
+orangeColor = "#FF9F0A"
+redColor = "#FF453A"
+violetColor = "#BF5AF2"
+yellowColor = "#FFD60A"

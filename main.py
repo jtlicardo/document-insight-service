@@ -8,6 +8,7 @@ from openai import OpenAIError
 from pydantic import BaseModel
 
 from document_processing import create_ocr_engine, extract_text
+from entity_recognition import create_ner_model, extract_entities
 from question_answering import answer_question
 from retrieval import create_document_chunks, retrieve_relevant_chunks
 
@@ -17,12 +18,20 @@ app = FastAPI(title="Document insight service")
 app.state.uploaded_documents = []
 app.state.document_chunks = []
 app.state.ocr_engine = None
+app.state.ner_model = None
 
 ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff"}
 
 
 class QuestionRequest(BaseModel):
     question: str
+
+
+def get_ner_model(request: Request):
+    """Load and reuse the English NER model."""
+    if request.app.state.ner_model is None:
+        request.app.state.ner_model = create_ner_model()
+    return request.app.state.ner_model
 
 
 @app.post("/upload")
@@ -61,6 +70,7 @@ async def upload_documents(
                 "content_type": file.content_type,
                 "content": content,
                 "text": text,
+                "entities": extract_entities(text, get_ner_model(request)),
             }
         )
 
@@ -69,7 +79,11 @@ async def upload_documents(
 
     return {
         "documents": [
-            {"filename": document["filename"], "text": document["text"]}
+            {
+                "filename": document["filename"],
+                "text": document["text"],
+                "entities": document["entities"],
+            }
             for document in documents
         ],
         "message": "Files uploaded successfully.",
@@ -129,6 +143,7 @@ def ask_question(question_request: QuestionRequest, request: Request):
             question_request.question,
             relevant_chunks,
         )
+        entities = extract_entities(answer, get_ner_model(request))
     except OpenAIError as exc:
         raise HTTPException(
             status_code=502,
@@ -138,6 +153,7 @@ def ask_question(question_request: QuestionRequest, request: Request):
     return {
         "question": question_request.question,
         "answer": answer,
+        "entities": entities,
     }
 
 
