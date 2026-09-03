@@ -46,25 +46,6 @@ def escape_markdown(text: str) -> str:
     return text.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
 
 
-def highlight_entities(text: str, entities: list[dict]) -> str:
-    """Add colored Streamlit Markdown highlights to named entities in text."""
-    highlighted_text = []
-    cursor = 0
-
-    for entity in entities:
-        highlighted_text.append(text[cursor : entity["start"]])
-        color = ENTITY_COLORS.get(entity["label"], "gray")
-        entity_text = escape_markdown(text[entity["start"] : entity["end"]])
-        highlighted_text.append(
-            f":{color}-background[{entity_text}] "
-            f":gray-badge[{entity['label']}]"
-        )
-        cursor = entity["end"]
-
-    highlighted_text.append(text[cursor:])
-    return "".join(highlighted_text)
-
-
 def display_entity_summary(entities: list[dict]) -> None:
     """Display useful document entities as grouped, color-coded chips."""
     grouped_entities = {}
@@ -241,10 +222,7 @@ if st.session_state["extracted_documents"]:
 st.subheader("Ask your documents", anchor=False)
 for message in st.session_state["messages"]:
     with st.chat_message(message["role"]):
-        if message.get("entities"):
-            st.markdown(highlight_entities(message["content"], message["entities"]))
-        else:
-            st.write(message["content"])
+        st.write(message["content"])
         display_sources(message.get("sources", []))
 
 question = st.chat_input(
@@ -274,16 +252,10 @@ if question:
                 {
                     "role": "assistant",
                     "content": result["answer"],
-                    "entities": result["entities"],
                     "sources": result.get("sources", []),
                 }
             )
-            if result["entities"]:
-                st.markdown(
-                    highlight_entities(result["answer"], result["entities"])
-                )
-            else:
-                st.write(result["answer"])
+            st.write(result["answer"])
             display_sources(result.get("sources", []))
         except requests.RequestException as exc:
             st.error(f"Could not get an answer: {exc}")

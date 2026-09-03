@@ -143,7 +143,6 @@ def ask_question(question_request: QuestionRequest, request: Request):
             question_request.question,
             relevant_chunks,
         )
-        entities = extract_entities(answer_result.answer, get_ner_model(request))
     except (OpenAIError, ValueError) as exc:
         raise HTTPException(
             status_code=502,
@@ -166,7 +165,6 @@ def ask_question(question_request: QuestionRequest, request: Request):
     return {
         "question": question_request.question,
         "answer": answer_result.answer,
-        "entities": entities,
         "sources": sources,
     }
 
