@@ -1,9 +1,21 @@
 import os
+from pathlib import Path
 
 import requests
 import streamlit as st
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
+SAMPLE_DIRECTORY = Path(__file__).resolve().parent / "sample_documents"
+SAMPLE_DOCUMENTS = {
+    "sample_contract.pdf": {
+        "label": ":material/picture_as_pdf: Sample contract",
+        "content_type": "application/pdf",
+    },
+    "scanned_invoice.png": {
+        "label": ":material/image: Scanned invoice",
+        "content_type": "image/png",
+    },
+}
 
 
 ENTITY_COLORS = {
@@ -98,7 +110,7 @@ st.set_page_config(
 st.title("Document insight service")
 st.markdown("Turn PDFs and images into answers you can trust.")
 st.caption(
-    ":material/model_training: **Model stack:** GPT-5.6 Luna · "
+    ":material/model_training: **Model stack:** GPT-5.6 Terra · "
     "text-embedding-3-small · spaCy en_core_web_md"
 )
 st.caption(
@@ -111,6 +123,15 @@ st.session_state.setdefault("messages", [])
 with st.container(border=True, gap="small"):
     st.markdown("### Add documents")
     st.caption("PDF, PNG, JPG or TIFF · multiple files supported")
+    selected_samples = st.pills(
+        "Try the included samples",
+        options=list(SAMPLE_DOCUMENTS),
+        format_func=lambda filename: SAMPLE_DOCUMENTS[filename]["label"],
+        selection_mode="multi",
+        key="selected_samples",
+        width="stretch",
+    )
+    st.caption("Or add your own")
     uploaded_files = st.file_uploader(
         "Choose documents",
         type=["pdf", "png", "jpg", "jpeg", "tif", "tiff"],
@@ -124,14 +145,27 @@ with st.container(border=True, gap="small"):
     )
 
 if upload_clicked:
-    if not uploaded_files:
+    files_by_name = {
+        filename: (
+            filename,
+            (SAMPLE_DIRECTORY / filename).read_bytes(),
+            SAMPLE_DOCUMENTS[filename]["content_type"],
+        )
+        for filename in selected_samples
+        if filename in SAMPLE_DOCUMENTS
+    }
+    files_by_name.update(
+        {
+            file.name: (file.name, file.getvalue(), file.type)
+            for file in uploaded_files
+        }
+    )
+
+    if not files_by_name:
         st.warning("Please select at least one document.")
     else:
-        document_count = len(uploaded_files)
-        files = [
-            ("files", (file.name, file.getvalue(), file.type))
-            for file in uploaded_files
-        ]
+        document_count = len(files_by_name)
+        files = [("files", file) for file in files_by_name.values()]
         st.session_state["documents_uploaded"] = False
         st.session_state["extracted_documents"] = []
         st.session_state["messages"] = []

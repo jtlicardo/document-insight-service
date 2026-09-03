@@ -1,14 +1,24 @@
 import os
 
 from openai import OpenAI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class QuestionAnswer(BaseModel):
     """A grounded answer and the retrieved sources that support it."""
 
-    answer: str
-    source_ids: list[str]
+    answer: str = Field(
+        description=(
+            "A direct, concise natural-language answer to the user's question. "
+            "Never return source IDs in this field."
+        )
+    )
+    source_ids: list[str] = Field(
+        description=(
+            "The source IDs of excerpts that directly support the answer. "
+            "Return an empty list when the answer is not present."
+        )
+    )
 
 
 def answer_question(question: str, chunks: list[dict]) -> QuestionAnswer:
@@ -22,12 +32,11 @@ def answer_question(question: str, chunks: list[dict]) -> QuestionAnswer:
 
     client = OpenAI()
     response = client.responses.parse(
-        model=os.getenv("OPENAI_MODEL", "gpt-5.6-luna"),
+        model=os.getenv("OPENAI_MODEL", "gpt-5.6-terra"),
         instructions=(
-            "Answer using only the supplied document excerpts. "
-            "Return only the source IDs of excerpts that directly support the answer. "
-            "If the answer is not in the excerpts, say that it could not be found and "
-            "return an empty source_ids list."
+            "Answer the user's question directly in natural language, using only the "
+            "supplied document excerpts. Select only excerpts that directly support "
+            "the answer. If the answer is not present, say that it could not be found."
         ),
         input=f"Document excerpts:\n{document_text}\n\nQuestion: {question}",
         reasoning={"effort": "low"},
