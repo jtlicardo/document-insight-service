@@ -1,6 +1,7 @@
 from gliner2 import AutoExtractor, BoundaryExtractor
 
-NER_MODEL_NAME = "fastino/gliner2.5-base-v1"
+from config import NER_MODEL_NAME
+
 NER_THRESHOLD = 0.5
 ENTITY_TYPES = {
     "person": (

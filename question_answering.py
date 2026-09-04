@@ -1,7 +1,7 @@
-import os
-
 from openai import OpenAI
 from pydantic import BaseModel, Field
+
+from config import OPENAI_MODEL
 
 
 class QuestionAnswer(BaseModel):
@@ -33,7 +33,7 @@ def answer_question(question: str, chunks: list[dict]) -> QuestionAnswer:
 
     client = OpenAI()
     response = client.responses.parse(
-        model=os.getenv("OPENAI_MODEL", "gpt-5.6-terra"),
+        model=OPENAI_MODEL,
         instructions=(
             "Answer the user's question directly in natural language, using only the "
             "supplied document excerpts. Select only excerpts that directly support "

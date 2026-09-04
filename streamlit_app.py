@@ -1,14 +1,19 @@
-import os
 from pathlib import Path
 
 import requests
 import streamlit as st
 
-API_URL = os.getenv("API_URL", "http://localhost:8000")
+from config import (
+    API_URL,
+    MAX_FILE_COUNT,
+    MAX_FILE_SIZE_MB,
+    MAX_QUESTION_LENGTH,
+    NER_MODEL_NAME,
+    OPENAI_EMBEDDING_MODEL,
+    OPENAI_MODEL,
+)
+
 TEXT_PREVIEW_LENGTH = 1_000
-MAX_FILE_COUNT = 10
-MAX_FILE_SIZE_MB = 10
-MAX_QUESTION_LENGTH = 2_000
 SAMPLE_DIRECTORY = Path(__file__).resolve().parent / "sample_documents"
 SAMPLE_DOCUMENTS = {
     "sample_contract.pdf": {
@@ -106,8 +111,8 @@ st.set_page_config(
 st.title("Document insight service")
 st.markdown("Turn PDFs and images into answers you can trust.")
 st.caption(
-    ":material/model_training: **Model stack:** GPT-5.6 Terra · "
-    "text-embedding-3-small · fastino/gliner2.5-base-v1"
+    f":material/model_training: **Model stack:** {OPENAI_MODEL} · "
+    f"{OPENAI_EMBEDDING_MODEL} · {NER_MODEL_NAME}"
 )
 st.caption(
     ":material/language: Works best with English-language documents. Results may "

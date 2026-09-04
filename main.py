@@ -2,39 +2,26 @@ import os
 from pathlib import Path
 from typing import Annotated
 
-from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from openai import OpenAIError
-from pydantic import BaseModel, Field, field_validator
 
+from config import (
+    ALLOWED_EXTENSIONS,
+    MAX_FILE_COUNT,
+    MAX_FILE_SIZE_BYTES,
+    MAX_FILE_SIZE_MB,
+)
 from document_processing import create_ocr_engine, extract_text
 from entity_recognition import create_ner_model, extract_entities
 from question_answering import answer_question
 from retrieval import create_document_chunks, retrieve_relevant_chunks
-
-load_dotenv()
+from schemas import AskResponse, MessageResponse, QuestionRequest, UploadResponse
 
 app = FastAPI(title="Document insight service")
 app.state.uploaded_documents = []
 app.state.document_chunks = []
 app.state.ocr_engine = None
 app.state.ner_model = None
-
-ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff"}
-MAX_FILE_COUNT = 10
-MAX_FILE_SIZE_MB = 10
-MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
-MAX_QUESTION_LENGTH = 2_000
-
-
-class QuestionRequest(BaseModel):
-    question: str = Field(min_length=1, max_length=MAX_QUESTION_LENGTH)
-
-    @field_validator("question", mode="before")
-    @classmethod
-    def strip_question(cls, value):
-        """Strip surrounding whitespace before validating question length."""
-        return value.strip() if isinstance(value, str) else value
 
 
 def get_ner_model(request: Request):
@@ -44,11 +31,11 @@ def get_ner_model(request: Request):
     return request.app.state.ner_model
 
 
-@app.post("/upload")
+@app.post("/upload", response_model=UploadResponse)
 async def upload_documents(
     request: Request,
     files: Annotated[list[UploadFile], File()],
-):
+) -> UploadResponse:
     """Extract and temporarily store text from uploaded PDF or image documents."""
     if len(files) > MAX_FILE_COUNT:
         raise HTTPException(
@@ -92,7 +79,6 @@ async def upload_documents(
             {
                 "filename": file.filename,
                 "content_type": file.content_type,
-                "content": content,
                 "text": extracted_document["text"],
                 "pages": extracted_document["pages"],
                 "entities": extract_entities(
@@ -105,8 +91,8 @@ async def upload_documents(
     request.app.state.uploaded_documents = documents
     request.app.state.document_chunks = []
 
-    return {
-        "documents": [
+    return UploadResponse(
+        documents=[
             {
                 "filename": document["filename"],
                 "text": document["text"],
@@ -114,12 +100,12 @@ async def upload_documents(
             }
             for document in documents
         ],
-        "message": "Files uploaded successfully.",
-    }
+        message="Files uploaded successfully.",
+    )
 
 
-@app.post("/index")
-def index_documents(request: Request):
+@app.post("/index", response_model=MessageResponse)
+def index_documents(request: Request) -> MessageResponse:
     """Create and temporarily store embeddings for the uploaded documents."""
     if not request.app.state.uploaded_documents:
         raise HTTPException(status_code=400, detail="Upload a document first.")
@@ -142,11 +128,11 @@ def index_documents(request: Request):
             detail="OpenAI could not create document embeddings.",
         ) from exc
 
-    return {"message": "Document embeddings created successfully."}
+    return MessageResponse(message="Document embeddings created successfully.")
 
 
-@app.post("/ask")
-def ask_question(question_request: QuestionRequest, request: Request):
+@app.post("/ask", response_model=AskResponse)
+def ask_question(question_request: QuestionRequest, request: Request) -> AskResponse:
     """Accept a question about the currently uploaded documents."""
     if not request.app.state.uploaded_documents:
         raise HTTPException(status_code=400, detail="Upload a document first.")
@@ -189,11 +175,11 @@ def ask_question(question_request: QuestionRequest, request: Request):
         if source_id in chunks_by_source_id
     ]
 
-    return {
-        "question": question_request.question,
-        "answer": answer_result.answer,
-        "sources": sources,
-    }
+    return AskResponse(
+        question=question_request.question,
+        answer=answer_result.answer,
+        sources=sources,
+    )
 
 
 if __name__ == "__main__":

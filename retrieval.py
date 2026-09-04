@@ -1,8 +1,8 @@
-import os
-
 import tiktoken
 from openai import OpenAI
 from sklearn.metrics.pairwise import cosine_similarity
+
+from config import OPENAI_EMBEDDING_MODEL
 
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 100
@@ -39,7 +39,7 @@ def create_document_chunks(documents: list[dict]) -> list[dict]:
 
     client = OpenAI()
     response = client.embeddings.create(
-        model=os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"),
+        model=OPENAI_EMBEDDING_MODEL,
         input=[chunk["text"] for chunk in chunks],
     )
 
@@ -56,7 +56,7 @@ def retrieve_relevant_chunks(
     """Return the document chunks most semantically similar to a question."""
     client = OpenAI()
     response = client.embeddings.create(
-        model=os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"),
+        model=OPENAI_EMBEDDING_MODEL,
         input=question,
     )
     question_embedding = response.data[0].embedding
