@@ -21,6 +21,9 @@ WORKDIR /app
 COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --no-dev --no-install-project
 
+COPY config.py document_processing.py entity_recognition.py preload_models.py ./
+RUN uv run --no-sync python preload_models.py
+
 COPY . .
 
 EXPOSE 8000

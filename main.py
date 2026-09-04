@@ -1,5 +1,6 @@
 import logging
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 from time import perf_counter
 from typing import Annotated
@@ -19,17 +20,29 @@ from question_answering import answer_question
 from retrieval import create_document_chunks, retrieve_relevant_chunks
 from schemas import AskResponse, IndexResponse, QuestionRequest, UploadResponse
 
-app = FastAPI(title="Document insight service")
-app.state.uploaded_documents = []
-app.state.document_chunks = []
-app.state.ocr_engine = None
-app.state.ner_model = None
 logger = logging.getLogger("uvicorn.error")
 
 
 def elapsed_ms(started_at: float) -> float:
     """Return elapsed milliseconds rounded for concise logging."""
     return round((perf_counter() - started_at) * 1_000, 2)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Load the always-used NER model before the API accepts requests."""
+    started_at = perf_counter()
+    logger.info("Loading GLiNER model...")
+    app.state.ner_model = create_ner_model()
+    logger.info("GLiNER model ready: duration_ms=%.2f", elapsed_ms(started_at))
+    yield
+
+
+app = FastAPI(title="Document insight service", lifespan=lifespan)
+app.state.uploaded_documents = []
+app.state.document_chunks = []
+app.state.ocr_engine = None
+app.state.ner_model = None
 
 
 def get_ner_model(request: Request):

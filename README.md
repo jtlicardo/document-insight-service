@@ -120,6 +120,12 @@ Install the locked dependencies:
 uv sync
 ```
 
+Download the local NER and OCR model files once:
+
+```bash
+uv run python preload_models.py
+```
+
 Start the API:
 
 ```bash
@@ -137,9 +143,9 @@ Open:
 - Streamlit UI: <http://localhost:8501>
 - Interactive API documentation: <http://localhost:8000/docs>
 
-The NER and OCR model files are downloaded on first use, so the first document
-may take longer to process. OCR is initialized lazily and is not loaded for PDFs
-that already contain extractable text.
+The API loads GLiNER into memory during startup because every document uses NER.
+PaddleOCR remains lazy and is initialized only when an image or scanned PDF page
+requires it; its model files are already cached by the preload command.
 
 ## Docker
 
@@ -153,6 +159,8 @@ Build and start both services:
 ```bash
 docker compose up --build
 ```
+
+The Docker build downloads the GLiNER and PaddleOCR model files into the image.
 
 Then open <http://localhost:8501>. The FastAPI documentation is available at
 <http://localhost:8000/docs>.
