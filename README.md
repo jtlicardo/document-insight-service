@@ -22,6 +22,35 @@ polished workflow for trying the API and the included sample documents.
 The application works best with English-language documents. OCR quality also
 depends on image resolution, layout, and scan quality.
 
+## Interface
+
+<p align="center">
+  <a href="images/1.png">
+    <img src="images/1.png" alt="Document upload interface" width="820">
+  </a>
+</p>
+
+<p align="center"><em>Upload your own documents or start with an included sample.</em></p>
+
+<table>
+  <tr>
+    <th align="center">Extracted document insights</th>
+    <th align="center">Grounded answers and citations</th>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="images/2.png">
+        <img src="images/2.png" alt="Extracted text and named entities" width="100%">
+      </a>
+    </td>
+    <td width="50%" valign="top">
+      <a href="images/3.png">
+        <img src="images/3.png" alt="Question answer with page-aware citations" width="100%">
+      </a>
+    </td>
+  </tr>
+</table>
+
 ## How it works
 
 ```mermaid
