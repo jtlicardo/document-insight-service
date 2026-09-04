@@ -1,3 +1,5 @@
+from typing import TypedDict
+
 import tiktoken
 from openai import OpenAI
 from sklearn.metrics.pairwise import cosine_similarity
@@ -7,6 +9,27 @@ from config import OPENAI_EMBEDDING_MODEL
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 100
 TOP_CHUNKS = 5
+
+
+class RetrievalPage(TypedDict):
+    page_number: int | None
+    text: str
+
+
+class RetrievalDocument(TypedDict):
+    filename: str
+    pages: list[RetrievalPage]
+
+
+class DocumentChunk(TypedDict):
+    filename: str
+    page_number: int | None
+    text: str
+    embedding: list[float]
+
+
+class RetrievedChunk(DocumentChunk):
+    source_id: str
 
 
 def chunk_text(text: str) -> list[str]:
@@ -21,9 +44,11 @@ def chunk_text(text: str) -> list[str]:
     ]
 
 
-def create_document_chunks(documents: list[dict]) -> list[dict]:
+def create_document_chunks(
+    documents: list[RetrievalDocument],
+) -> list[DocumentChunk]:
     """Chunk document text and create an embedding for every chunk."""
-    chunks = [
+    chunk_texts = [
         {
             "filename": document["filename"],
             "page_number": page["page_number"],
@@ -34,25 +59,26 @@ def create_document_chunks(documents: list[dict]) -> list[dict]:
         for chunk in chunk_text(page["text"])
     ]
 
-    if not chunks:
+    if not chunk_texts:
         raise ValueError("No text could be extracted from the uploaded documents.")
 
     client = OpenAI()
     response = client.embeddings.create(
         model=OPENAI_EMBEDDING_MODEL,
-        input=[chunk["text"] for chunk in chunks],
+        input=[chunk["text"] for chunk in chunk_texts],
     )
+    embeddings = {item.index: item.embedding for item in response.data}
 
-    for item in response.data:
-        chunks[item.index]["embedding"] = item.embedding
-
-    return chunks
+    return [
+        {**chunk, "embedding": embeddings[index]}
+        for index, chunk in enumerate(chunk_texts)
+    ]
 
 
 def retrieve_relevant_chunks(
     question: str,
-    chunks: list[dict],
-) -> list[dict]:
+    chunks: list[DocumentChunk],
+) -> list[RetrievedChunk]:
     """Return the document chunks most semantically similar to a question."""
     client = OpenAI()
     response = client.embeddings.create(
@@ -71,7 +97,6 @@ def retrieve_relevant_chunks(
         {
             **chunks[index],
             "source_id": f"S{source_number}",
-            "similarity": float(similarities[index]),
         }
         for source_number, index in enumerate(top_indices, start=1)
     ]

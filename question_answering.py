@@ -2,6 +2,7 @@ from openai import OpenAI
 from pydantic import BaseModel, Field
 
 from config import OPENAI_MODEL
+from retrieval import RetrievedChunk
 
 
 class QuestionAnswer(BaseModel):
@@ -21,7 +22,7 @@ class QuestionAnswer(BaseModel):
     )
 
 
-def answer_question(question: str, chunks: list[dict]) -> QuestionAnswer:
+def answer_question(question: str, chunks: list[RetrievedChunk]) -> QuestionAnswer:
     """Answer a question and identify the chunks that support the answer."""
     document_text = "\n\n".join(
         f"Source ID: {chunk['source_id']}\n"

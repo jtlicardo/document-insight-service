@@ -63,6 +63,18 @@ def normalize_display_text(text: str) -> str:
     return " ".join(text.split())
 
 
+def api_error_message(exc: requests.RequestException, fallback: str) -> str:
+    """Return FastAPI's error detail or a safe fallback message."""
+    if exc.response is None:
+        return fallback
+
+    try:
+        detail = exc.response.json().get("detail")
+    except (requests.exceptions.JSONDecodeError, AttributeError):
+        return fallback
+    return detail if isinstance(detail, str) else fallback
+
+
 def display_entity_summary(entities: list[dict]) -> None:
     """Display useful document entities as grouped, color-coded chips."""
     grouped_entities = {}
@@ -205,7 +217,7 @@ if upload_clicked:
             st.success(result["message"])
         except requests.RequestException as exc:
             current_status.update(label="Document processing failed", state="error")
-            st.error(f"Could not upload documents: {exc}")
+            st.error(api_error_message(exc, "Could not process the documents."))
 
 if st.session_state["extracted_documents"]:
     st.subheader("Document insights", anchor=False)
@@ -284,4 +296,4 @@ if question:
             st.write(result["answer"])
             display_sources(result.get("sources", []))
         except requests.RequestException as exc:
-            st.error(f"Could not get an answer: {exc}")
+            st.error(api_error_message(exc, "Could not get an answer."))

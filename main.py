@@ -97,7 +97,6 @@ async def upload_documents(
             extracted_document["text"],
             get_ner_model(request),
         )
-        character_count = len(extracted_document["text"])
 
         documents.append(
             {
@@ -107,7 +106,6 @@ async def upload_documents(
                 "entities": entities,
                 "page_count": extracted_document["page_count"],
                 "ocr_pages": extracted_document["ocr_pages"],
-                "character_count": character_count,
             }
         )
 
@@ -127,9 +125,6 @@ async def upload_documents(
                 "filename": document["filename"],
                 "text": document["text"],
                 "entities": document["entities"],
-                "page_count": document["page_count"],
-                "ocr_pages": document["ocr_pages"],
-                "character_count": document["character_count"],
             }
             for document in documents
         ],
@@ -189,6 +184,7 @@ def ask_question(question_request: QuestionRequest, request: Request) -> AskResp
         )
 
     try:
+        # API clients may call /ask directly; indexing remains explicit for the UI.
         if not request.app.state.document_chunks:
             create_document_index(request)
 
@@ -229,10 +225,6 @@ def ask_question(question_request: QuestionRequest, request: Request) -> AskResp
         question=question_request.question,
         answer=answer_result.answer,
         sources=sources,
-        metadata={
-            "retrieved_chunks": len(relevant_chunks),
-            "cited_sources": len(sources),
-        },
     )
 
 
