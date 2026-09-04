@@ -32,29 +32,26 @@ depends on image resolution, layout, and scan quality.
 
 <p align="center"><em>Upload your own documents or start with an included sample.</em></p>
 
-<table>
-  <tr>
-    <th align="center">Extracted document insights</th>
-    <th align="center">Grounded answers and citations</th>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <a href="images/2.png">
-        <img src="images/2.png" alt="Extracted text and named entities" width="100%">
-      </a>
-    </td>
-    <td width="50%" valign="top">
-      <a href="images/3.png">
-        <img src="images/3.png" alt="Question answer with page-aware citations" width="100%">
-      </a>
-    </td>
-  </tr>
-</table>
+<p align="center"><strong>Extracted document insights</strong></p>
+
+<p align="center">
+  <a href="images/2.png">
+    <img src="images/2.png" alt="Extracted text and named entities" width="760">
+  </a>
+</p>
+
+<p align="center"><strong>Grounded answers and page-aware citations</strong></p>
+
+<p align="center">
+  <a href="images/3.png">
+    <img src="images/3.png" alt="Question answer with page-aware citations" width="810">
+  </a>
+</p>
 
 ## How it works
 
 ```mermaid
-flowchart LR
+flowchart TD
     A[PDF or image] --> B[PyMuPDF or PaddleOCR]
     B --> C[Text and page metadata]
     C --> D[GLiNER entities]
