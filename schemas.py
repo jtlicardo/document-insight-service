@@ -25,6 +25,9 @@ class DocumentResponse(BaseModel):
     filename: str
     text: str
     entities: list[EntityResponse]
+    page_count: int
+    ocr_pages: int
+    character_count: int
 
 
 class UploadResponse(BaseModel):
@@ -32,8 +35,9 @@ class UploadResponse(BaseModel):
     message: str
 
 
-class MessageResponse(BaseModel):
+class IndexResponse(BaseModel):
     message: str
+    chunk_count: int
 
 
 class SourceResponse(BaseModel):
@@ -42,7 +46,13 @@ class SourceResponse(BaseModel):
     excerpt: str
 
 
+class AskMetadata(BaseModel):
+    retrieved_chunks: int
+    cited_sources: int
+
+
 class AskResponse(BaseModel):
     question: str
     answer: str
     sources: list[SourceResponse]
+    metadata: AskMetadata

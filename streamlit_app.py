@@ -187,7 +187,13 @@ if upload_clicked:
             current_status = embedding_status
             response = requests.post(f"{API_URL}/index", timeout=60)
             response.raise_for_status()
-            embedding_status.update(label="Embeddings created", state="complete")
+            index_result = response.json()
+            chunk_count = index_result["chunk_count"]
+            chunk_label = "chunk" if chunk_count == 1 else "chunks"
+            embedding_status.update(
+                label=f"{chunk_count} {chunk_label} indexed",
+                state="complete",
+            )
 
             st.session_state["documents_uploaded"] = True
             st.session_state["extracted_documents"] = result["documents"]

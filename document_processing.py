@@ -16,6 +16,8 @@ class ExtractedPage(TypedDict):
 class ExtractedDocument(TypedDict):
     text: str
     pages: list[ExtractedPage]
+    page_count: int
+    ocr_pages: int
 
 
 def create_ocr_engine() -> PaddleOCR:
@@ -50,11 +52,14 @@ def extract_pdf_text(
         raise ValueError("The PDF is invalid or unreadable.") from exc
 
     pages: list[ExtractedPage] = []
+    page_count = document.page_count
+    ocr_pages = 0
     with document:
         for page_number, page in enumerate(document, start=1):
             text = page.get_text("text").strip()
 
             if not text:
+                ocr_pages += 1
                 pixmap = page.get_pixmap(matrix=pymupdf.Matrix(2, 2), alpha=False)
                 image = np.frombuffer(pixmap.samples, dtype=np.uint8).reshape(
                     pixmap.height,
@@ -73,6 +78,8 @@ def extract_pdf_text(
             f"Page {page['page_number']}\n{page['text']}" for page in pages
         ),
         "pages": pages,
+        "page_count": page_count,
+        "ocr_pages": ocr_pages,
     }
 
 
@@ -89,6 +96,8 @@ def extract_image_text(content: bytes, ocr_engine: PaddleOCR) -> ExtractedDocume
     return {
         "text": text,
         "pages": [{"page_number": None, "text": text}],
+        "page_count": 1,
+        "ocr_pages": 1,
     }
 
 
